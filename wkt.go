@@ -209,5 +209,5 @@ func ParseWKT(wkt string) (Feature, error) {
 		return Feature{}, err
  	}
 
- 	return Feature{Type: t, Coordinates: g}, nil
+ 	return Feature{Type: t, Coordinates: g, Properties: make(map[string]interface{})}, nil
 }
