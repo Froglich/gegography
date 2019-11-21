@@ -20,9 +20,9 @@ type geoJSON struct {
 	Type     string           `json:"type"`
 	Name     string           `json:"name,omitempty"`
 	CRS      struct {
-		Type string           `json:"type,omitempty"`
+		Type string           `json:"type"`
 		Properties struct {
-			Name string       `json:"name,omitempty"`
+			Name string       `json:"name"`
 		}                     `json:"properties"`
 	}                         `json:"crs"`
 	Features []geoJSONFeature `json:"features"`
