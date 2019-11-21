@@ -40,3 +40,14 @@ type GeoFormatError struct {
 func (g GeoFormatError) Error() string {
 	return g.Msg
 }
+
+func NewFeatureCollection() FeatureCollection {
+	fc := FeatureCollection{}
+	fc.Features = make([]Feature, 0)
+
+	return fc
+}
+
+func (fc *FeatureCollection) AddFeature(f Feature) {
+	fc.Features = append(fc.Features, f)
+}
