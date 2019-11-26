@@ -6,17 +6,13 @@ import "fmt"
 type Point struct {
 	X float64
 	Y float64
-	Z float64
 }
-
 //MultiPoint describes a collection of points
 type MultiPoint []Point
 //LineString describes a collection of points which together form a line
 type LineString []Point
 //Polygon describes a collection of point collections which together form a polygon
 type Polygon []MultiPoint
-//MultiLineString describes a collection of LineStrings
-type MultiLineString []LineString
 //MultiPolygon describes a collection of Polygons
 type MultiPolygon []Polygon
 
