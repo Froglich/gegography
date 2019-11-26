@@ -12,7 +12,7 @@ Gegography supports the following geographical types:
 * Polygon
 * MultiPoint
 * MultiLineString
-* MultiPoint
+* MultiPolygon
 
 Currently, only XY geometries are supported.
 
