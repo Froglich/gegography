@@ -43,6 +43,7 @@ func (mp MultiPolygon) toWKT() string {
 	return strings.Join(str, ", ")
 }
 
+//ToWKT writes a WKT string representing a Feature
 func (f *Feature) ToWKT() (string, error) {
 	var str string
 
@@ -66,6 +67,7 @@ func (f *Feature) ToWKT() (string, error) {
 	return fmt.Sprintf("%s (%s)", strings.ToUpper(f.Type), str), nil
 }
 
+//ToWKT writes a WKT string representing a FeatureCollection
 func (fc *FeatureCollection) ToWKT() (string, error) {
 	str := make([]string, 0)
 
@@ -89,8 +91,9 @@ func parseWKTPoint(wkt string) (Point, error) {
 	w := strings.Trim(wkt, " ()\t\r\n")
 
 	parts := strings.Split(w, " ")
+	length := len(parts)
 
-	if len(parts) != 2 {
+	if length < 2 || length > 3 {
 		return p, GeoFormatError{Msg: fmt.Sprintf("invalid WKT point - '%s' wrong number of separators", w)}
 	}
 
@@ -108,6 +111,16 @@ func parseWKTPoint(wkt string) (Point, error) {
 
 	p.X = x
 	p.Y = y
+
+	if length == 3 {
+		z, err := strconv.ParseFloat(parts[2], 64)
+
+		if err != nil {
+			return p, err
+		}
+
+		p.Z = z
+	}
 
 	return p, nil
 }
@@ -166,6 +179,7 @@ func parseWKTMultiPolygon(wkt string) (MultiPolygon, error) {
 	return mp, nil
 }
 
+//ParseWKT parses a WKT string and returns a feature
 func ParseWKT(wkt string) (Feature, error) {
 	var g interface{}
 	var t string

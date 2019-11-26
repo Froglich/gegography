@@ -144,6 +144,7 @@ func (mp MultiPolygon) toGeoJSON() gjMultiPolygon {
 	return gjmp
 }
 
+//ToGeoJSON writes a byte array containing JSON conforming to the GeoJSON format
 func (fc *FeatureCollection) ToGeoJSON() ([]byte, error) {
 	gj := geoJSON{Name: fc.Name, Type: "FeatureCollection"}
 
@@ -168,6 +169,7 @@ func (fc *FeatureCollection) ToGeoJSON() ([]byte, error) {
 	return json.Marshal(gj)
 }
 
+//LoadGeoJSON parses an array of bytes conforming to the GeoJSON format to a FeatureCollection
 func LoadGeoJSON(input []byte) (FeatureCollection, error) {
 	var gj geoJSON
 
