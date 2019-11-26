@@ -93,8 +93,8 @@ func parseWKTPoint(wkt string) (Point, error) {
 	parts := strings.Split(w, " ")
 	length := len(parts)
 
-	if length < 2 || length > 3 {
-		return p, GeoFormatError{Msg: fmt.Sprintf("invalid WKT point - '%s' wrong number of separators", w)}
+	if length < 2 {
+		return p, GeoFormatError{Msg: fmt.Sprintf("invalid WKT point - '%s' too few separators", w)}
 	}
 
 	x, err := strconv.ParseFloat(parts[0], 64)
@@ -111,16 +111,6 @@ func parseWKTPoint(wkt string) (Point, error) {
 
 	p.X = x
 	p.Y = y
-
-	if length == 3 {
-		z, err := strconv.ParseFloat(parts[2], 64)
-
-		if err != nil {
-			return p, err
-		}
-
-		p.Z = z
-	}
 
 	return p, nil
 }
