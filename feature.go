@@ -43,7 +43,7 @@ func (g GeoTypeError) Error() string {
 	return fmt.Sprintf("%s: bad or unsupported geographical type.", g.Type)
 }
 
-//GeoFormatError describes an error involving badly formatted geographical information.
+//GeoFormatError describes an error involving badly formatted geographical information
 type GeoFormatError struct {
 	Msg string
 }
@@ -52,11 +52,10 @@ func (g GeoFormatError) Error() string {
 	return g.Msg
 }
 
-//NewFeatureCollection returns a new blank FeatureCollection with an instantiated feature array and property map.
+//NewFeatureCollection returns a new blank FeatureCollection with an instantiated feature array
 func NewFeatureCollection() FeatureCollection {
 	fc := FeatureCollection{}
 	fc.Features = make([]Feature, 0)
-	fc.Properties = make(map[string]interface{})
 
 	return fc
 }
