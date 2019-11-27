@@ -213,6 +213,7 @@ func shpGeographyParser(filename string, result chan shpGeoParser) {
 	result <- shpGeoParser{Features: features}
 }
 
+//ParseShapefile reads a shapefile (and accompanying dBASE-table, if any) into a FeatureCollection
 func ParseShapefile(shapeFile string) (FeatureCollection, error) {
 	geoChan := make(chan shpGeoParser)
 
