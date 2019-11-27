@@ -1,10 +1,10 @@
 package gegography
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"os"
-	"fmt"
-	"bytes"
 	//"strings"
 	"encoding/binary"
 )
@@ -52,7 +52,7 @@ func parseShpMultiPoint(in []byte) (MultiPoint, error) {
 	for z := 0; z < int(nr); z++ {
 		s := 36 + z*16
 
-		p, err := parseShpPoint(in[s:s+16])
+		p, err := parseShpPoint(in[s : s+16])
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +97,7 @@ func parseShpPolyLine(in []byte) (Polygon, error) {
 
 	for x := 0; x < int(npoints); x++ {
 		s := 40 + 4*int(nparts) + 16*x
-		point, err := parseShpPoint(in[s:s+16])
+		point, err := parseShpPoint(in[s : s+16])
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +121,7 @@ func parseValue(in []byte, order binary.ByteOrder, out interface{}) error {
 
 type shpGeoParser struct {
 	Features []Feature
-	Error error
+	Error    error
 }
 
 func shpGeographyParser(filename string, result chan shpGeoParser) {
@@ -129,20 +129,23 @@ func shpGeographyParser(filename string, result chan shpGeoParser) {
 	r, err := os.Open(filename)
 
 	if err != nil {
-		result <- shpGeoParser{Error: err}; return
+		result <- shpGeoParser{Error: err}
+		return
 	}
 
 	header := make([]byte, 100)
 
 	_, err = r.Read(header)
 	if err != nil {
-		result <- shpGeoParser{Error: err}; return
+		result <- shpGeoParser{Error: err}
+		return
 	}
 
 	var fileLength int32
 	err = parseValue(header[24:28], binary.BigEndian, &fileLength) //the only part of the header I care about for reading.
 	if err != nil {
-		result <- shpGeoParser{Error: err}; return
+		result <- shpGeoParser{Error: err}
+		return
 	}
 
 	var pos int32 = 100
@@ -156,48 +159,54 @@ func shpGeographyParser(filename string, result chan shpGeoParser) {
 	for pos < fileLength*2 {
 		_, err = r.Read(rh)
 		if err != nil {
-			result <- shpGeoParser{Error: err}; return
+			result <- shpGeoParser{Error: err}
+			return
 		}
 		pos += 8
 
 		err = parseValue(rh[4:8], binary.BigEndian, &cl)
 		if err != nil {
-			result <- shpGeoParser{Error: err}; return
+			result <- shpGeoParser{Error: err}
+			return
 		}
 
 		content := make([]byte, cl*2)
 		_, err = r.Read(content)
 		if err != nil {
-			result <- shpGeoParser{Error: err}; return
+			result <- shpGeoParser{Error: err}
+			return
 		}
-		pos += cl*2
+		pos += cl * 2
 
 		err = parseValue(content[0:4], binary.LittleEndian, &t)
 		if err != nil {
-			result <- shpGeoParser{Error: err}; return
+			result <- shpGeoParser{Error: err}
+			return
 		}
 
 		var c interface{}
 
-		switch(t) {
-			case 1:
-				c, err = parseShpPoint(content[4:])
-				features = append(features, Feature{Type: "Point", Coordinates: c})
-			case 8:
-				c, err = parseShpMultiPoint(content[4:])
-				features = append(features, Feature{Type: "MultiPoint", Coordinates: c})
-			case 3:
-				c, err = parseShpPolyLine(content[4:])
-				features = append(features, Feature{Type: "MultiLineString", Coordinates: c})
-			case 5:
-				c, err = parseShpPolyLine(content[4:])
-				features = append(features, Feature{Type: "Polygon", Coordinates: c})
-			default:
-				result <- shpGeoParser{Error: GeoTypeError{Type: fmt.Sprintf("unsupported shapefile geographical type '%v'", t)}}; return
+		switch t {
+		case 1:
+			c, err = parseShpPoint(content[4:])
+			features = append(features, Feature{Type: "Point", Coordinates: c})
+		case 8:
+			c, err = parseShpMultiPoint(content[4:])
+			features = append(features, Feature{Type: "MultiPoint", Coordinates: c})
+		case 3:
+			c, err = parseShpPolyLine(content[4:])
+			features = append(features, Feature{Type: "MultiLineString", Coordinates: c})
+		case 5:
+			c, err = parseShpPolyLine(content[4:])
+			features = append(features, Feature{Type: "Polygon", Coordinates: c})
+		default:
+			result <- shpGeoParser{Error: GeoTypeError{Type: fmt.Sprintf("unsupported shapefile geographical type '%v'", t)}}
+			return
 		}
 
 		if err != nil {
-			result <- shpGeoParser{Error: err}; return
+			result <- shpGeoParser{Error: err}
+			return
 		}
 	}
 
@@ -211,7 +220,7 @@ func ParseShapefile(shapeFile string) (FeatureCollection, error) {
 
 	go shpGeographyParser(shapeFile, geoChan) //Planning on parsing the attribute table and geographies on separate threads for performance.
 
-	geo := <- geoChan
+	geo := <-geoChan
 
 	if geo.Error != nil {
 		return FeatureCollection{}, geo.Error

@@ -2,8 +2,8 @@ package gegography
 
 import (
 	"fmt"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 func (p Point) toWKT() string {
@@ -47,21 +47,21 @@ func (mp MultiPolygon) toWKT() string {
 func (f *Feature) ToWKT() (string, error) {
 	var str string
 
-	switch(f.Type) {
-		case "Point":
-			str = f.Coordinates.(Point).toWKT()
-		case "MultiPoint":
-			str = f.Coordinates.(MultiPoint).toWKT()
-		case "LineString":
-			str = f.Coordinates.(MultiPoint).toWKT()
-		case "Polygon":
-			str = f.Coordinates.(Polygon).toWKT()
-		case "MultiLineString":
-			str = f.Coordinates.(Polygon).toWKT()
-		case "MultiPolygon":
-			str = f.Coordinates.(MultiPolygon).toWKT()
-		default:
-			return "", GeoTypeError{Type: f.Type}
+	switch f.Type {
+	case "Point":
+		str = f.Coordinates.(Point).toWKT()
+	case "MultiPoint":
+		str = f.Coordinates.(MultiPoint).toWKT()
+	case "LineString":
+		str = f.Coordinates.(MultiPoint).toWKT()
+	case "Polygon":
+		str = f.Coordinates.(Polygon).toWKT()
+	case "MultiLineString":
+		str = f.Coordinates.(Polygon).toWKT()
+	case "MultiPolygon":
+		str = f.Coordinates.(MultiPolygon).toWKT()
+	default:
+		return "", GeoTypeError{Type: f.Type}
 	}
 
 	return fmt.Sprintf("%s (%s)", strings.ToUpper(f.Type), str), nil
@@ -188,22 +188,22 @@ func ParseWKT(wkt string) (Feature, error) {
 	}
 
 	if strings.HasPrefix(w, "POINT") {
-		g, err = parseWKTPoint(w[s+1:e])
+		g, err = parseWKTPoint(w[s+1 : e])
 		t = "Point"
 	} else if strings.HasPrefix(w, "MULTIPOINT") {
-		g, err = parseWKTMultiPoint(w[s+1:e])
+		g, err = parseWKTMultiPoint(w[s+1 : e])
 		t = "MultiPoint"
 	} else if strings.HasPrefix(w, "LINESTRING") {
-		g, err = parseWKTMultiPoint(w[s+1:e])
+		g, err = parseWKTMultiPoint(w[s+1 : e])
 		t = "LineString"
 	} else if strings.HasPrefix(w, "POLYGON") {
-		g, err = parseWKTPolygon(w[s+1:e])
+		g, err = parseWKTPolygon(w[s+1 : e])
 		t = "Polygon"
 	} else if strings.HasPrefix(w, "MULTILINESTRING") {
-		g, err = parseWKTPolygon(w[s+1:e])
+		g, err = parseWKTPolygon(w[s+1 : e])
 		t = "MultiLineString"
 	} else if strings.HasPrefix(w, "MULTIPOLYGON") {
-		g, err = parseWKTMultiPolygon(w[s+1:e])
+		g, err = parseWKTMultiPolygon(w[s+1 : e])
 		t = "MultiPolygon"
 	} else {
 		err = GeoTypeError{Type: w}
@@ -211,7 +211,7 @@ func ParseWKT(wkt string) (Feature, error) {
 
 	if err != nil {
 		return Feature{}, err
- 	}
+	}
 
- 	return Feature{Type: t, Coordinates: g, Properties: make(map[string]interface{})}, nil
+	return Feature{Type: t, Coordinates: g, Properties: make(map[string]interface{})}, nil
 }

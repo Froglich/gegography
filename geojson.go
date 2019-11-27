@@ -1,30 +1,30 @@
 package gegography
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 )
 
 type geoJSONGeometry struct {
-	Type            string          `json:"type"`
-	Coordinates     json.RawMessage `json:"coordinates"`
+	Type        string          `json:"type"`
+	Coordinates json.RawMessage `json:"coordinates"`
 }
 
 type geoJSONFeature struct {
-	Type        string                 `json:"type"`
-	Properties  map[string]interface{} `json:"properties,omitempty"`
-	Geometry    geoJSONGeometry        `json:"geometry"`
+	Type       string                 `json:"type"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
+	Geometry   geoJSONGeometry        `json:"geometry"`
 }
 
 type geoJSON struct {
-	Type     string           `json:"type"`
-	Name     string           `json:"name,omitempty"`
-	CRS      struct {
-		Type string           `json:"type"`
+	Type string `json:"type"`
+	Name string `json:"name,omitempty"`
+	CRS  struct {
+		Type       string `json:"type"`
 		Properties struct {
-			Name string       `json:"name"`
-		}                     `json:"properties"`
-	}                         `json:"crs"`
+			Name string `json:"name"`
+		} `json:"properties"`
+	} `json:"crs"`
 	Features []geoJSONFeature `json:"features"`
 }
 
@@ -73,21 +73,21 @@ func (g gjMultiPolygon) toMultiPolygon() MultiPolygon {
 func (f *Feature) toGeoJSON() (geoJSONFeature, error) {
 	var coordinates interface{}
 
-	switch(f.Type) {
-		case "Point":
-			coordinates = f.Coordinates.(Point).toGeoJSON()
-		case "MultiPoint":
-			coordinates = f.Coordinates.(MultiPoint).toGeoJSON()
-		case "LineString":
-			coordinates = f.Coordinates.(MultiPoint).toGeoJSON()
-		case "Polygon":
-			coordinates = f.Coordinates.(Polygon).toGeoJSON()
-		case "MultiLineString":
-			coordinates = f.Coordinates.(Polygon).toGeoJSON()
-		case "MultiPolygon":
-			coordinates = f.Coordinates.(MultiPolygon).toGeoJSON()
-		default:
-			return geoJSONFeature{}, GeoTypeError{Type: f.Type}
+	switch f.Type {
+	case "Point":
+		coordinates = f.Coordinates.(Point).toGeoJSON()
+	case "MultiPoint":
+		coordinates = f.Coordinates.(MultiPoint).toGeoJSON()
+	case "LineString":
+		coordinates = f.Coordinates.(MultiPoint).toGeoJSON()
+	case "Polygon":
+		coordinates = f.Coordinates.(Polygon).toGeoJSON()
+	case "MultiLineString":
+		coordinates = f.Coordinates.(Polygon).toGeoJSON()
+	case "MultiPolygon":
+		coordinates = f.Coordinates.(MultiPolygon).toGeoJSON()
+	default:
+		return geoJSONFeature{}, GeoTypeError{Type: f.Type}
 	}
 
 	jc, err := json.Marshal(coordinates)
@@ -96,8 +96,8 @@ func (f *Feature) toGeoJSON() (geoJSONFeature, error) {
 		return geoJSONFeature{}, err
 	}
 
-	gjf := geoJSONFeature {
-		Type: "Feature",
+	gjf := geoJSONFeature{
+		Type:       "Feature",
 		Properties: f.Properties,
 	}
 
@@ -153,7 +153,6 @@ func (fc *FeatureCollection) ToGeoJSON() ([]byte, error) {
 		gj.CRS.Properties.Name = fc.CRS
 	}
 
-
 	for x := range fc.Features {
 		f := fc.Features[x]
 
@@ -185,45 +184,45 @@ func LoadGeoJSON(input []byte) (FeatureCollection, error) {
 	for f := range gj.Features {
 		feature := gj.Features[f]
 		switch feature.Geometry.Type {
-			case "Point":
-				var g gjPoint
-				if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-					return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v point geometry coordinates malformed", f)}
-				}
-				fc.Features = append(fc.Features, Feature{Type: "Point", Properties: feature.Properties, Coordinates: g.toPoint()})
-			case "MultiPoint":
-				var g gjMultiPoint
-				if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-					return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v multipoint geometry coordinates malformed", f)}
-				}
-				fc.Features = append(fc.Features, Feature{Type: "MultiPoint", Properties: feature.Properties, Coordinates: g.toMultiPoint()})
-			case "LineString":
-				var g gjMultiPoint
-				if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-					return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v linestring geometry coordinates malformed", f)}
-				}
-				fc.Features = append(fc.Features, Feature{Type: "LineString", Properties: feature.Properties, Coordinates: g.toMultiPoint()})
-			case "MultiLineString":
-				var g gjPolygon
-				if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-					return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v multilinestring geometry coordinates malformed", f)}
-				}
-				fc.Features = append(fc.Features, Feature{Type: "MultiLineString", Properties: feature.Properties, Coordinates: g.toPolygon()})
-			case "Polygon":
-				var g gjPolygon
-				if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-					return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v polygon geometry coordinates malformed", f)}
-				}
-				fc.Features = append(fc.Features, Feature{Type: "Polygon", Properties: feature.Properties, Coordinates: g.toPolygon()})
-			case "MultiPolygon":
-				var g gjMultiPolygon
-				if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-					return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v multipolygon geometry coordinates malformed", f)}
-				}
-				fc.Features = append(fc.Features, Feature{Type: "MultiPolygon", Properties: feature.Properties, Coordinates: g.toMultiPolygon()})
-			case "":
-			default:
-				return FeatureCollection{}, GeoTypeError{Type: feature.Type}
+		case "Point":
+			var g gjPoint
+			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
+				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v point geometry coordinates malformed", f)}
+			}
+			fc.Features = append(fc.Features, Feature{Type: "Point", Properties: feature.Properties, Coordinates: g.toPoint()})
+		case "MultiPoint":
+			var g gjMultiPoint
+			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
+				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v multipoint geometry coordinates malformed", f)}
+			}
+			fc.Features = append(fc.Features, Feature{Type: "MultiPoint", Properties: feature.Properties, Coordinates: g.toMultiPoint()})
+		case "LineString":
+			var g gjMultiPoint
+			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
+				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v linestring geometry coordinates malformed", f)}
+			}
+			fc.Features = append(fc.Features, Feature{Type: "LineString", Properties: feature.Properties, Coordinates: g.toMultiPoint()})
+		case "MultiLineString":
+			var g gjPolygon
+			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
+				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v multilinestring geometry coordinates malformed", f)}
+			}
+			fc.Features = append(fc.Features, Feature{Type: "MultiLineString", Properties: feature.Properties, Coordinates: g.toPolygon()})
+		case "Polygon":
+			var g gjPolygon
+			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
+				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v polygon geometry coordinates malformed", f)}
+			}
+			fc.Features = append(fc.Features, Feature{Type: "Polygon", Properties: feature.Properties, Coordinates: g.toPolygon()})
+		case "MultiPolygon":
+			var g gjMultiPolygon
+			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
+				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v multipolygon geometry coordinates malformed", f)}
+			}
+			fc.Features = append(fc.Features, Feature{Type: "MultiPolygon", Properties: feature.Properties, Coordinates: g.toMultiPolygon()})
+		case "":
+		default:
+			return FeatureCollection{}, GeoTypeError{Type: feature.Type}
 		}
 	}
 
