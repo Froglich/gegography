@@ -5,7 +5,7 @@ import (
 	"os"
 	"fmt"
 	"bytes"
-	"strings"
+	//"strings"
 	"encoding/binary"
 )
 
@@ -129,20 +129,20 @@ func shpGeographyParser(filename string, result chan shpGeoParser) {
 	r, err := os.Open(filename)
 
 	if err != nil {
-		result <- shpGeoParser{Error: err}
+		result <- shpGeoParser{Error: err}; return
 	}
 
 	header := make([]byte, 100)
 
 	_, err = r.Read(header)
 	if err != nil {
-		result <- shpGeoParser{Error: err}
+		result <- shpGeoParser{Error: err}; return
 	}
 
 	var fileLength int32
-	err = parseValue(header[24:28], binary.BigEndian, &fileLength)
+	err = parseValue(header[24:28], binary.BigEndian, &fileLength) //the only part of the header I care about for reading.
 	if err != nil {
-		result <- shpGeoParser{Error: err}
+		result <- shpGeoParser{Error: err}; return
 	}
 
 	var pos int32 = 100
@@ -156,25 +156,25 @@ func shpGeographyParser(filename string, result chan shpGeoParser) {
 	for pos < fileLength*2 {
 		_, err = r.Read(rh)
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeoParser{Error: err}; return
 		}
 		pos += 8
 
 		err = parseValue(rh[4:8], binary.BigEndian, &cl)
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeoParser{Error: err}; return
 		}
 
 		content := make([]byte, cl*2)
 		_, err = r.Read(content)
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeoParser{Error: err}; return
 		}
 		pos += cl*2
 
 		err = parseValue(content[0:4], binary.LittleEndian, &t)
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeoParser{Error: err}; return
 		}
 
 		var c interface{}
@@ -193,25 +193,33 @@ func shpGeographyParser(filename string, result chan shpGeoParser) {
 				c, err = parseShpPolyLine(content[4:])
 				features = append(features, Feature{Type: "Polygon", Coordinates: c})
 			default:
-				result <- shpGeoParser{Error: GeoTypeError{Type: fmt.Sprintf("unsupported shapefile geographical type '%v'", t)}}
+				result <- shpGeoParser{Error: GeoTypeError{Type: fmt.Sprintf("unsupported shapefile geographical type '%v'", t)}}; return
 		}
 
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeoParser{Error: err}; return
 		}
 	}
 
 	result <- shpGeoParser{Features: features}
 }
 
-func ParseShapefile(filename string) {
+func ParseShapefile(shapeFile string) (FeatureCollection, error) {
 	geoChan := make(chan shpGeoParser)
 
-	tabFile := strings.Replace(filename, ".shp", ".dbf", 1)
+	//tabFile := strings.Replace(shapeFile, ".shp", ".dbf", 1) //Naive assumption that .shp only occurs at the end of the path
 
-	go shpGeographyParser(filename, geoChan)
+	go shpGeographyParser(shapeFile, geoChan) //Planning on parsing the attribute table and geographies on separate threads for performance.
 
 	geo := <- geoChan
 
-	fmt.Println(geo.Features)
+	if geo.Error != nil {
+		return FeatureCollection{}, geo.Error
+	}
+
+	fc := FeatureCollection{Features: geo.Features}
+
+	return fc, nil
+
+	//fmt.Println(geo.Features)
 }
