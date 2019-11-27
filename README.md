@@ -21,5 +21,5 @@ Install with `go get github.com/Froglich/gegography` .
 
 ## ToDo
 * Add capability to read dBASE files (i.e. shapefile attributes)
-* Finish shapefile implementation (export FeatureCollection)
+* Finish shapefile implementation
 * Implement WKB (Well-Known-Binary)
