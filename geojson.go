@@ -2,7 +2,6 @@ package gegography
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 type geoJSONGeometry struct {
@@ -19,12 +18,6 @@ type geoJSONFeature struct {
 type geoJSON struct {
 	Type string `json:"type"`
 	Name string `json:"name,omitempty"`
-	CRS  struct {
-		Type       string `json:"type"`
-		Properties struct {
-			Name string `json:"name"`
-		} `json:"properties"`
-	} `json:"crs"`
 	Features []geoJSONFeature `json:"features"`
 }
 
@@ -144,14 +137,8 @@ func (mp MultiPolygon) toGeoJSON() gjMultiPolygon {
 	return gjmp
 }
 
-//ToGeoJSON writes a byte array containing JSON conforming to the GeoJSON format
-func (fc *FeatureCollection) ToGeoJSON() ([]byte, error) {
+func (fc *FeatureCollection) toGeoJSONStruct() (geoJSON, error) {
 	gj := geoJSON{Name: fc.Name, Type: "FeatureCollection"}
-
-	if fc.CRS != "" {
-		gj.CRS.Type = "name"
-		gj.CRS.Properties.Name = fc.CRS
-	}
 
 	for x := range fc.Features {
 		f := fc.Features[x]
@@ -159,13 +146,35 @@ func (fc *FeatureCollection) ToGeoJSON() ([]byte, error) {
 		gjf, err := f.toGeoJSON()
 
 		if err != nil {
-			return nil, err
+			return geoJSON{}, err
 		}
 
 		gj.Features = append(gj.Features, gjf)
 	}
 
+	return gj, nil
+}
+
+//ToGeoJSON exports a FeatureCollection to a byte array containing JSON conforming to the GeoJSON format
+func (fc *FeatureCollection) ToGeoJSON() ([]byte, error) {
+	gj, err := fc.toGeoJSONStruct()
+
+	if err != nil {
+		return nil, err
+	}
+
 	return json.Marshal(gj)
+}
+
+//ToPrettyGeoJSON exports a FeatureCollection to a byte array containing indented JSON conforming to the GeoJSON format
+func (fc *FeatureCollection) ToPrettyGeoJSON() ([]byte, error) {
+	gj, err := fc.toGeoJSONStruct()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return json.MarshalIndent(gj, "", "\t")
 }
 
 //LoadGeoJSON parses an array of bytes conforming to the GeoJSON format to a FeatureCollection
@@ -178,51 +187,51 @@ func LoadGeoJSON(input []byte) (FeatureCollection, error) {
 
 	var fc FeatureCollection
 	fc.Features = make([]Feature, 0)
-	fc.CRS = gj.CRS.Properties.Name
 	fc.Name = gj.Name
 
+	var coordinates interface{}
+	var err error
+
 	for f := range gj.Features {
+		skip := false
 		feature := gj.Features[f]
 		switch feature.Geometry.Type {
 		case "Point":
 			var g gjPoint
-			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v point geometry coordinates malformed", f)}
-			}
-			fc.Features = append(fc.Features, Feature{Type: "Point", Properties: feature.Properties, Coordinates: g.toPoint()})
+			err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+			coordinates = g.toPoint()
 		case "MultiPoint":
 			var g gjMultiPoint
-			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v multipoint geometry coordinates malformed", f)}
-			}
-			fc.Features = append(fc.Features, Feature{Type: "MultiPoint", Properties: feature.Properties, Coordinates: g.toMultiPoint()})
+			err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+			coordinates = g.toMultiPoint()
 		case "LineString":
 			var g gjMultiPoint
-			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v linestring geometry coordinates malformed", f)}
-			}
-			fc.Features = append(fc.Features, Feature{Type: "LineString", Properties: feature.Properties, Coordinates: g.toMultiPoint()})
+			err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+			coordinates = g.toMultiPoint()
 		case "MultiLineString":
 			var g gjPolygon
-			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v multilinestring geometry coordinates malformed", f)}
-			}
-			fc.Features = append(fc.Features, Feature{Type: "MultiLineString", Properties: feature.Properties, Coordinates: g.toPolygon()})
+			err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+			coordinates = g.toPolygon()
 		case "Polygon":
 			var g gjPolygon
-			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v polygon geometry coordinates malformed", f)}
-			}
-			fc.Features = append(fc.Features, Feature{Type: "Polygon", Properties: feature.Properties, Coordinates: g.toPolygon()})
+			err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+			coordinates = g.toPolygon()
 		case "MultiPolygon":
 			var g gjMultiPolygon
-			if err := json.Unmarshal(feature.Geometry.Coordinates, &g); err != nil {
-				return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("geojson feature %v multipolygon geometry coordinates malformed", f)}
-			}
-			fc.Features = append(fc.Features, Feature{Type: "MultiPolygon", Properties: feature.Properties, Coordinates: g.toMultiPolygon()})
+			err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+			coordinates = g.toMultiPolygon()
 		case "":
+			skip = true
 		default:
 			return FeatureCollection{}, GeoTypeError{Type: feature.Type}
+		}
+
+		if !skip {
+			if err != nil {
+				return FeatureCollection{}, GeoFormatError{Msg: "GeoJSON is malformed"}
+			}
+
+			fc.Features = append(fc.Features, Feature{Type: feature.Geometry.Type, Properties: feature.Properties, Coordinates: coordinates})
 		}
 	}
 
