@@ -1,8 +1,8 @@
 # Gegography
 Gegography is a library for reading, manipulating and converting
 geographical formats, written i pure Go. Currently, support is limited to
-GeoJSON and WKT (Well-Known-Text). The basis for Shapefile support (read only)
-is implemented, and I plan on implementing WKB (Well-Known-Binary) as well.
+GeoJSON, WKT (Well-Known-Text) and Shapefiles (read only). I plan on
+implementing WKB (Well-Known-Binary).
 
 I do not plan on supporting writing Shapefiles. [Shapefile must die!](http://switchfromshapefile.org/)
 
@@ -18,8 +18,3 @@ Currently, only XY geometries are supported.
 
 ## Installing
 Install with `go get github.com/Froglich/gegography` .
-
-## ToDo
-* Add capability to read dBASE files (i.e. shapefile attributes)
-* Finish shapefile implementation
-* Implement WKB (Well-Known-Binary)
