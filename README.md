@@ -65,7 +65,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}```
+}
+```
 
 ## Installing
 Install with `go get github.com/Froglich/gegography` .
