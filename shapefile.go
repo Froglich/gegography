@@ -384,12 +384,6 @@ func ReadShapefile(shapeFile string) (FeatureCollection, error) {
 
 	fc.Features = geo.Features
 
-	fmt.Println(len(geo.Features), len(tab.Properties))
-
-	for x := range tab.Properties {
-		fmt.Println(tab.Properties[x])
-	}
-
 	if tab.FileExists {
 		if tab.Error != nil {
 			return FeatureCollection{}, tab.Error
