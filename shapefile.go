@@ -361,7 +361,7 @@ func dBASEReader(filename string, result chan dBASETable) {
 	return
 }
 
-//ParseShapefile reads a shapefile (and accompanying dBASE-table, if any) into a FeatureCollection
+//ReadShapefile reads a shapefile (and accompanying dBASE-table, if any) into a FeatureCollection
 func ReadShapefile(shapeFile string) (FeatureCollection, error) {
 	if !strings.HasSuffix(shapeFile, ".shp") {
 		return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("%v does not appear to be a shapefile", shapeFile)}
