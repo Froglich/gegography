@@ -2,11 +2,11 @@ package gegography
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"os"
-	"strings"
 	"strconv"
-	"encoding/binary"
+	"strings"
 )
 
 const shpMin float64 = -1e38
@@ -220,7 +220,7 @@ type dBASEColumn struct {
 }
 
 func (dbc *dBASEColumn) castValue(inVal string) (outVal interface{}, err error) {
-	switch(dbc.DataType) {
+	switch dbc.DataType {
 	case 'N':
 		outVal, err = strconv.ParseFloat(inVal, 64)
 	case 'F':
@@ -243,10 +243,10 @@ type dBASETable struct {
 
 func (dbr *dBASETable) addColumn(name string, index int, dt byte, size int) {
 	dbr.Columns = append(dbr.Columns, dBASEColumn{
-		Name: name,
-		Index: index,
+		Name:     name,
+		Index:    index,
 		DataType: dt,
-		Size: size,
+		Size:     size,
 	})
 }
 
@@ -256,7 +256,7 @@ func (dbr *dBASETable) addRow(row map[string]interface{}) {
 
 func dBASEReader(filename string, result chan dBASETable) {
 	ret := dBASETable{
-		Columns: make([]dBASEColumn, 0),
+		Columns:    make([]dBASEColumn, 0),
 		Properties: make([]map[string]interface{}, 0),
 	}
 
@@ -309,12 +309,12 @@ func dBASEReader(filename string, result chan dBASETable) {
 		return
 	}
 
-	nrOfColumns := int((headerSize - 33)/32)
+	nrOfColumns := int((headerSize - 33) / 32)
 
 	var size uint8
 	for x := 0; x < nrOfColumns; x++ {
-		offset := x * 32 + 32
-		fieldName := string(c[offset:offset+10])
+		offset := x*32 + 32
+		fieldName := string(c[offset : offset+10])
 
 		err := parseValue(c[offset+16:offset+17], binary.LittleEndian, &size)
 		if err != nil {
@@ -327,7 +327,7 @@ func dBASEReader(filename string, result chan dBASETable) {
 
 	for row := 0; row < int(nrOfRecords); row++ {
 		newRow := make(map[string]interface{})
-		rowOffset := int(headerSize) + row * int(recordLength)
+		rowOffset := int(headerSize) + row*int(recordLength)
 		recordOffset := 1
 		prevRecordSize := 0
 
@@ -336,7 +336,7 @@ func dBASEReader(filename string, result chan dBASETable) {
 			recordOffset += prevRecordSize
 			prevRecordSize += column.Size
 
-			temp := c[rowOffset+recordOffset:rowOffset+recordOffset+column.Size]
+			temp := c[rowOffset+recordOffset : rowOffset+recordOffset+column.Size]
 			record := string(temp)
 			for i := 0; i < len(temp); i++ {
 				if temp[i] == 0x00 {
