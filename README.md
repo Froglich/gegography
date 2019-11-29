@@ -34,5 +34,38 @@ With gegography you can read a Shapefile or a GeoJSON-document and easily export
 all features to WKT-strings for storage as geometries inside a database engine
 such as PostgreSQL or SQL Server.
 
+## How do I use it?
+A typical use-case would look something like this (convert a shapefile to geojson)
+
+```go
+package main
+
+import (
+	"os"
+	"github.com/Froglich/gegography"
+	"io/ioutil"
+)
+
+func main() {
+	infile := os.Args[1]
+	fc, err := gegography.ReadShapefile(infile)
+
+	if err != nil {
+		panic(err)
+	}
+
+	gj, err := fc.ToPrettyGeoJSON()
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = ioutil.WriteFile(infile[:len(infile)-4] + ".geojson", gj, 0755)
+
+	if err != nil {
+		panic(err)
+	}
+}```
+
 ## Installing
 Install with `go get github.com/Froglich/gegography` .
