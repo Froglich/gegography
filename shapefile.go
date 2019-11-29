@@ -219,7 +219,9 @@ type dBASEColumn struct {
 	Size     int
 }
 
-func (dbc *dBASEColumn) castValue(inVal string) (outVal interface{}, err error) {
+func (dbc *dBASEColumn) castValue(inVal string) (outVal interface{}) {
+	var err error
+
 	switch dbc.DataType {
 	case 'N':
 		outVal, err = strconv.ParseFloat(inVal, 64)
@@ -229,6 +231,11 @@ func (dbc *dBASEColumn) castValue(inVal string) (outVal interface{}, err error) 
 		outVal, err = strconv.ParseFloat(inVal, 64)
 	default:
 		outVal = inVal
+	}
+
+	if err != nil {
+		outVal = inVal
+		err = nil
 	}
 
 	return
@@ -345,13 +352,7 @@ func dBASEReader(filename string, result chan dBASETable) {
 				}
 			}
 
-			val, err := column.castValue(strings.TrimSpace(record))
-			if err != nil {
-				returnError(err)
-				return
-			}
-
-			newRow[column.Name] = val
+			newRow[column.Name] = column.castValue(strings.TrimSpace(record))
 		}
 
 		ret.addRow(newRow)
