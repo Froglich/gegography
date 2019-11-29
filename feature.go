@@ -30,7 +30,6 @@ type Feature struct {
 //FeatureCollection represents a collection of geographical features and accompanying information
 type FeatureCollection struct {
 	Name     string
-	CRS      string
 	Features []Feature
 }
 

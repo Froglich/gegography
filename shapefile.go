@@ -3,9 +3,9 @@ package gegography
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
-	//"strings"
+	"strings"
+	"strconv"
 	"encoding/binary"
 )
 
@@ -119,17 +119,16 @@ func parseValue(in []byte, order binary.ByteOrder, out interface{}) error {
 	return binary.Read(buf, order, out)
 }
 
-type shpGeoParser struct {
+type shpGeography struct {
 	Features []Feature
 	Error    error
 }
 
-func shpGeographyParser(filename string, result chan shpGeoParser) {
-	var r io.Reader
+func shpGeographyReader(filename string, result chan shpGeography) {
 	r, err := os.Open(filename)
 
 	if err != nil {
-		result <- shpGeoParser{Error: err}
+		result <- shpGeography{Error: err}
 		return
 	}
 
@@ -137,14 +136,14 @@ func shpGeographyParser(filename string, result chan shpGeoParser) {
 
 	_, err = r.Read(header)
 	if err != nil {
-		result <- shpGeoParser{Error: err}
+		result <- shpGeography{Error: err}
 		return
 	}
 
 	var fileLength int32
 	err = parseValue(header[24:28], binary.BigEndian, &fileLength) //the only part of the header I care about for reading.
 	if err != nil {
-		result <- shpGeoParser{Error: err}
+		result <- shpGeography{Error: err}
 		return
 	}
 
@@ -159,28 +158,28 @@ func shpGeographyParser(filename string, result chan shpGeoParser) {
 	for pos < fileLength*2 {
 		_, err = r.Read(rh)
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeography{Error: err}
 			return
 		}
 		pos += 8
 
 		err = parseValue(rh[4:8], binary.BigEndian, &cl)
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeography{Error: err}
 			return
 		}
 
 		content := make([]byte, cl*2)
 		_, err = r.Read(content)
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeography{Error: err}
 			return
 		}
 		pos += cl * 2
 
 		err = parseValue(content[0:4], binary.LittleEndian, &t)
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeography{Error: err}
 			return
 		}
 
@@ -200,36 +199,210 @@ func shpGeographyParser(filename string, result chan shpGeoParser) {
 			c, err = parseShpPolyLine(content[4:])
 			features = append(features, Feature{Type: "Polygon", Coordinates: c})
 		default:
-			result <- shpGeoParser{Error: GeoTypeError{Type: fmt.Sprintf("unsupported shapefile geographical type '%v'", t)}}
+			result <- shpGeography{Error: GeoTypeError{Type: fmt.Sprintf("unsupported shapefile geographical type '%v'", t)}}
 			return
 		}
 
 		if err != nil {
-			result <- shpGeoParser{Error: err}
+			result <- shpGeography{Error: err}
 			return
 		}
 	}
 
-	result <- shpGeoParser{Features: features}
+	result <- shpGeography{Features: features}
+}
+
+type dBASEColumn struct {
+	Name     string
+	Index    int
+	DataType byte
+	Size     int
+}
+
+func (dbc *dBASEColumn) castValue(inVal string) (outVal interface{}, err error) {
+	switch(dbc.DataType) {
+	case 'N':
+		outVal, err = strconv.ParseFloat(inVal, 64)
+	case 'F':
+		outVal, err = strconv.ParseFloat(inVal, 64)
+	case 'O':
+		outVal, err = strconv.ParseFloat(inVal, 64)
+	default:
+		outVal = inVal
+	}
+
+	return
+}
+
+type dBASETable struct {
+	FileExists bool
+	Properties []map[string]interface{}
+	Error      error
+	Columns    []dBASEColumn
+}
+
+func (dbr *dBASETable) addColumn(name string, index int, dt byte, size int) {
+	dbr.Columns = append(dbr.Columns, dBASEColumn{
+		Name: name,
+		Index: index,
+		DataType: dt,
+		Size: size,
+	})
+}
+
+func (dbr *dBASETable) addRow(row map[string]interface{}) {
+	dbr.Properties = append(dbr.Properties, row)
+}
+
+func dBASEReader(filename string, result chan dBASETable) {
+	ret := dBASETable{
+		Columns: make([]dBASEColumn, 0),
+		Properties: make([]map[string]interface{}, 0),
+	}
+
+	returnError := func(err error) {
+		ret.Error = err
+		result <- ret
+	}
+
+	r, err := os.Open(filename)
+	if err != nil {
+		returnError(err)
+		return
+	}
+
+	d, err := r.Stat()
+	if err != nil {
+		returnError(err)
+		return
+	}
+
+	ret.FileExists = true //technically, it may exist before this point as well.
+
+	c := make([]byte, d.Size())
+
+	_, err = r.Read(c)
+	if err != nil {
+		returnError(err)
+		return
+	}
+
+	var nrOfRecords uint32
+	var headerSize uint16
+	var recordLength uint16
+
+	err = parseValue(c[4:8], binary.LittleEndian, &nrOfRecords)
+	if err != nil {
+		returnError(err)
+		return
+	}
+
+	err = parseValue(c[8:10], binary.LittleEndian, &headerSize)
+	if err != nil {
+		returnError(err)
+		return
+	}
+
+	err = parseValue(c[10:12], binary.LittleEndian, &recordLength)
+	if err != nil {
+		returnError(err)
+		return
+	}
+
+	nrOfColumns := int((headerSize - 33)/32)
+
+	var size uint8
+	for x := 0; x < nrOfColumns; x++ {
+		offset := x * 32 + 32
+		fieldName := string(c[offset:offset+10])
+
+		err := parseValue(c[offset+16:offset+17], binary.LittleEndian, &size)
+		if err != nil {
+			returnError(err)
+			return
+		}
+
+		ret.addColumn(fieldName, x, c[offset+11], int(size))
+	}
+
+	for row := 0; row < int(nrOfRecords); row++ {
+		newRow := make(map[string]interface{})
+		rowOffset := int(headerSize) + row * int(recordLength)
+		recordOffset := 1
+		prevRecordSize := 0
+
+		for x := range ret.Columns {
+			column := ret.Columns[x]
+			recordOffset += prevRecordSize
+			prevRecordSize += column.Size
+
+			temp := c[rowOffset+recordOffset:rowOffset+recordOffset+column.Size]
+			record := string(temp)
+			for i := 0; i < len(temp); i++ {
+				if temp[i] == 0x00 {
+					record = string(temp[:i])
+					break
+				}
+			}
+
+			val, err := column.castValue(strings.TrimSpace(record))
+			if err != nil {
+				returnError(err)
+				return
+			}
+
+			newRow[column.Name] = val
+		}
+
+		ret.addRow(newRow)
+	}
+
+	result <- ret
+	return
 }
 
 //ParseShapefile reads a shapefile (and accompanying dBASE-table, if any) into a FeatureCollection
-func ParseShapefile(shapeFile string) (FeatureCollection, error) {
-	geoChan := make(chan shpGeoParser)
+func ReadShapefile(shapeFile string) (FeatureCollection, error) {
+	if !strings.HasSuffix(shapeFile, ".shp") {
+		return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("%v does not appear to be a shapefile", shapeFile)}
+	}
 
-	//tabFile := strings.Replace(shapeFile, ".shp", ".dbf", 1) //Naive assumption that .shp only occurs at the end of the path
+	tabFile := shapeFile[:len(shapeFile)-4] + ".dbf"
+	tabChan := make(chan dBASETable)
+	geoChan := make(chan shpGeography)
 
-	go shpGeographyParser(shapeFile, geoChan) //Planning on parsing the attribute table and geographies on separate threads for performance.
-
+	go shpGeographyReader(shapeFile, geoChan)
+	go dBASEReader(tabFile, tabChan)
+	tab := <-tabChan
 	geo := <-geoChan
+
+	fc := FeatureCollection{}
 
 	if geo.Error != nil {
 		return FeatureCollection{}, geo.Error
 	}
 
-	fc := FeatureCollection{Features: geo.Features}
+	fc.Features = geo.Features
+
+	fmt.Println(len(geo.Features), len(tab.Properties))
+
+	for x := range tab.Properties {
+		fmt.Println(tab.Properties[x])
+	}
+
+	if tab.FileExists {
+		if tab.Error != nil {
+			return FeatureCollection{}, tab.Error
+		}
+
+		if len(tab.Properties) != len(geo.Features) {
+			return FeatureCollection{}, GeoFormatError{Msg: "mismatching number of rows in attribute table and shapefile"}
+		}
+
+		for x := range fc.Features {
+			fc.Features[x].Properties = tab.Properties[x]
+		}
+	}
 
 	return fc, nil
-
-	//fmt.Println(geo.Features)
 }
