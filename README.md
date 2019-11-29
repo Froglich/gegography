@@ -23,5 +23,16 @@ Gegography supports the following geographical types:
 
 Currently, only XY geometries are supported.
 
+## What is it for?
+I wrote Gegography primarily as a utility for processing geographical data
+uploaded to websites with Go backends. For example, I manage several websites
+with interactive mapping capabilities, and a common request is for users to
+be able to upload Shapefiles or GeoJSON-documents and have them automatically
+displayed on the map, or saved in the underlying database for viewing on demand.
+
+With gegography you can read a Shapefile or a GeoJSON-document and easily export
+all features to WKT-strings for storage as geometries inside a database engine
+such as PostgreSQL or SQL Server.
+
 ## Installing
 Install with `go get github.com/Froglich/gegography` .
