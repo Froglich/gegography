@@ -235,7 +235,6 @@ func (dbc *dBASEColumn) castValue(inVal string) (outVal interface{}) {
 
 	if err != nil {
 		outVal = inVal
-		err = nil
 	}
 
 	return
