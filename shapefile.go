@@ -323,9 +323,9 @@ func dBASEReader(filename string, result chan dBASETable) {
 	var size uint8
 	for x := 0; x < nrOfColumns; x++ {
 		offset := x*32 + 32
-		fieldName := string(c[offset : offset + 10])
+		fieldName := string(c[offset : offset+10])
 
-		err := parseValue(c[offset + 16:offset + 17], binary.LittleEndian, &size)
+		err := parseValue(c[offset+16:offset+17], binary.LittleEndian, &size)
 		if err != nil {
 			returnError(err)
 			return
@@ -335,12 +335,12 @@ func dBASEReader(filename string, result chan dBASETable) {
 		totSize += int(size)
 	}
 
-	if int(nrOfRecords)*int(recordLength)+int(headerSize) + 1 > len(c) {
-		returnError(GeoFormatError{Msg:"attribute table has malformed header"})
+	if int(nrOfRecords)*int(recordLength)+int(headerSize)+1 > len(c) {
+		returnError(GeoFormatError{Msg: "attribute table has malformed header"})
 		return
 	}
 
-	records := c[int(headerSize) + 1:]
+	records := c[int(headerSize)+1:]
 
 	for row := 0; row < int(nrOfRecords); row++ {
 		newRow := make(map[string]interface{})
@@ -354,14 +354,14 @@ func dBASEReader(filename string, result chan dBASETable) {
 			cStart := prevColumnsSize
 			prevColumnsSize += column.Size
 
-			val := strings.TrimSpace(string(record[cStart:cStart+column.Size]))
+			val := strings.TrimSpace(string(record[cStart : cStart+column.Size]))
 			newRow[column.Name] = column.castValue(val)
 		}
 
 		ret.addRow(newRow)
 	}
 
-	result <-ret
+	result <- ret
 	return
 }
 
