@@ -166,6 +166,17 @@ func (fc *FeatureCollection) ToGeoJSON() ([]byte, error) {
 	return json.Marshal(gj)
 }
 
+//ToGeoJSONFeatureArray exports a FeatureCollection to a byte array conforming to the GeoJSON format but discards everything except the feature array
+func (fc *FeatureCollection) ToGeoJSONFeatureArray() ([]byte, error) {
+	gj, err := fc.toGeoJSONStruct()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(gj.Features)
+}
+
 //ToPrettyGeoJSON exports a FeatureCollection to a byte array containing indented JSON conforming to the GeoJSON format
 func (fc *FeatureCollection) ToPrettyGeoJSON() ([]byte, error) {
 	gj, err := fc.toGeoJSONStruct()
