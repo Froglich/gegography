@@ -183,7 +183,7 @@ func ParseWKT(wkt string) (Feature, error) {
 	s := strings.Index(w, "(")
 	e := strings.LastIndex(w, ")")
 
-	if s < 6 || e < 7 || s > e {
+	if s < 5 || e < 7 || s > e {
 		return Feature{}, GeoFormatError{Msg: fmt.Sprintf("invalid WKT - '%s' not properly enclosed", w)}
 	}
 
