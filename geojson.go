@@ -63,7 +63,7 @@ func (g gjMultiPolygon) toMultiPolygon() MultiPolygon {
 	return mp
 }
 
-func (f *Feature) toGeoJSON() (geoJSONFeature, error) {
+func (f *Feature) toGeoJSONFeature() (geoJSONFeature, error) {
 	var coordinates interface{}
 
 	switch f.Type {
@@ -98,6 +98,21 @@ func (f *Feature) toGeoJSON() (geoJSONFeature, error) {
 	gjf.Geometry.Coordinates = jc
 
 	return gjf, nil
+}
+
+// ToGeoJSON exports a Feature to a byte array containing JSON conforming to the GeoJSON format
+func (f *Feature) ToGeoJSON() ([]byte, error) {
+	gjf, err := f.toGeoJSONFeature()
+	if err != nil {
+		return nil, err
+	}
+
+	out, err := json.Marshal(gjf)
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }
 
 func (p Point) toGeoJSON() gjPoint {
@@ -143,7 +158,7 @@ func (fc *FeatureCollection) toGeoJSONStruct() (geoJSON, error) {
 	for x := range fc.Features {
 		f := fc.Features[x]
 
-		gjf, err := f.toGeoJSON()
+		gjf, err := f.toGeoJSONFeature()
 
 		if err != nil {
 			return geoJSON{}, err
@@ -155,7 +170,7 @@ func (fc *FeatureCollection) toGeoJSONStruct() (geoJSON, error) {
 	return gj, nil
 }
 
-//ToGeoJSON exports a FeatureCollection to a byte array containing JSON conforming to the GeoJSON format
+// ToGeoJSON exports a FeatureCollection to a byte array containing JSON conforming to the GeoJSON format
 func (fc *FeatureCollection) ToGeoJSON() ([]byte, error) {
 	gj, err := fc.toGeoJSONStruct()
 
@@ -166,7 +181,7 @@ func (fc *FeatureCollection) ToGeoJSON() ([]byte, error) {
 	return json.Marshal(gj)
 }
 
-//ToGeoJSONFeatureArray exports a FeatureCollection to a byte array conforming to the GeoJSON format but discards everything except the feature array
+// ToGeoJSONFeatureArray exports a FeatureCollection to a byte array conforming to the GeoJSON format but discards everything except the feature array
 func (fc *FeatureCollection) ToGeoJSONFeatureArray() ([]byte, error) {
 	gj, err := fc.toGeoJSONStruct()
 
@@ -177,7 +192,7 @@ func (fc *FeatureCollection) ToGeoJSONFeatureArray() ([]byte, error) {
 	return json.Marshal(gj.Features)
 }
 
-//ToPrettyGeoJSON exports a FeatureCollection to a byte array containing indented JSON conforming to the GeoJSON format
+// ToPrettyGeoJSON exports a FeatureCollection to a byte array containing indented JSON conforming to the GeoJSON format
 func (fc *FeatureCollection) ToPrettyGeoJSON() ([]byte, error) {
 	gj, err := fc.toGeoJSONStruct()
 
@@ -188,7 +203,7 @@ func (fc *FeatureCollection) ToPrettyGeoJSON() ([]byte, error) {
 	return json.MarshalIndent(gj, "", "\t")
 }
 
-//LoadGeoJSON parses an array of bytes conforming to the GeoJSON format to a FeatureCollection
+// LoadGeoJSON parses an array of bytes conforming to the GeoJSON format to a FeatureCollection
 func LoadGeoJSON(input []byte) (FeatureCollection, error) {
 	var gj geoJSON
 
