@@ -16,9 +16,10 @@ type geoJSONFeature struct {
 }
 
 type geoJSON struct {
-	Type     string           `json:"type"`
-	Name     string           `json:"name,omitempty"`
-	Features []geoJSONFeature `json:"features"`
+	Type                      string           `json:"type"`
+	Name                      string           `json:"name,omitempty"`
+	CoordinateReferenceSystem *CRS             `json:"crs,omitempty"`
+	Features                  []geoJSONFeature `json:"features"`
 }
 
 type gjPoint []float64
@@ -153,7 +154,7 @@ func (mp MultiPolygon) toGeoJSON() gjMultiPolygon {
 }
 
 func (fc *FeatureCollection) toGeoJSONStruct() (geoJSON, error) {
-	gj := geoJSON{Name: fc.Name, Type: "FeatureCollection"}
+	gj := geoJSON{Name: fc.Name, CoordinateReferenceSystem: fc.CoordinateReferenceSystem, Type: "FeatureCollection"}
 
 	for x := range fc.Features {
 		f := fc.Features[x]
