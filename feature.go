@@ -20,14 +20,17 @@ type Polygon []MultiPoint
 // MultiPolygon describes a collection of Polygons
 type MultiPolygon []Polygon
 
+// CRSProperties are coordinate reference system properties according to the GeoJSON format specification
+type CRSProperties struct {
+	Name string `json:"name,omitempty"`
+	Href string `json:"href,omitempty"`
+	Type string `json:"type,omitempty"`
+}
+
 // CRS describes a coordinate reference system according to the GeoJSON format specification
 type CRS struct {
-	Type       string `json:"type"`
-	Properties struct {
-		Name string `json:"name,omitempty"`
-		Href string `json:"href,omitempty"`
-		Type string `json:"type,omitempty"`
-	} `json:"properties"`
+	Type       string        `json:"type"`
+	Properties CRSProperties `json:"properties"`
 }
 
 // Feature represents a geographical feature
