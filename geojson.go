@@ -204,6 +204,53 @@ func (fc *FeatureCollection) ToPrettyGeoJSON() ([]byte, error) {
 	return json.MarshalIndent(gj, "", "\t")
 }
 
+// LoadGeoJSONFeature parses an array of bytes conforming to a GeoJSON feature to a Feature
+func LoadGeoJSONFeature(input []byte) (Feature, error) {
+	var feature geoJSONFeature
+
+	if err := json.Unmarshal(input, &feature); err != nil {
+		return Feature{}, err
+	}
+
+	var coordinates interface{}
+	var err error
+
+	switch feature.Geometry.Type {
+	case "Point":
+		var g gjPoint
+		err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+		coordinates = g.toPoint()
+	case "MultiPoint":
+		var g gjMultiPoint
+		err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+		coordinates = g.toMultiPoint()
+	case "LineString":
+		var g gjMultiPoint
+		err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+		coordinates = g.toMultiPoint()
+	case "MultiLineString":
+		var g gjPolygon
+		err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+		coordinates = g.toPolygon()
+	case "Polygon":
+		var g gjPolygon
+		err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+		coordinates = g.toPolygon()
+	case "MultiPolygon":
+		var g gjMultiPolygon
+		err = json.Unmarshal(feature.Geometry.Coordinates, &g)
+		coordinates = g.toMultiPolygon()
+	default:
+		return Feature{}, GeoTypeError{Type: feature.Type}
+	}
+
+	if err != nil {
+		return Feature{}, GeoFormatError{Msg: "GeoJSON is malformed"}
+	}
+
+	return Feature{Type: feature.Geometry.Type, Properties: feature.Properties, Coordinates: coordinates}, nil
+}
+
 // LoadGeoJSON parses an array of bytes conforming to the GeoJSON format to a FeatureCollection
 func LoadGeoJSON(input []byte) (FeatureCollection, error) {
 	var gj geoJSON
