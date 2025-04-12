@@ -43,7 +43,7 @@ func (mp MultiPolygon) toWKT() string {
 	return strings.Join(str, ", ")
 }
 
-//ToWKT writes a WKT string representing a Feature
+// ToWKT writes a WKT string representing a Feature
 func (f *Feature) ToWKT() (string, error) {
 	var str string
 
@@ -67,7 +67,7 @@ func (f *Feature) ToWKT() (string, error) {
 	return fmt.Sprintf("%s (%s)", strings.ToUpper(f.Type), str), nil
 }
 
-//ToWKT writes a WKT string representing a FeatureCollection
+// ToWKT writes a WKT string representing a FeatureCollection
 func (fc *FeatureCollection) ToWKT() (string, error) {
 	str := make([]string, 0)
 
@@ -169,9 +169,9 @@ func parseWKTMultiPolygon(wkt string) (MultiPolygon, error) {
 	return mp, nil
 }
 
-//ParseWKT parses a WKT string and returns a feature
+// ParseWKT parses a WKT string and returns a feature
 func ParseWKT(wkt string) (Feature, error) {
-	var g interface{}
+	var g any
 	var t string
 	var err error
 
@@ -213,5 +213,5 @@ func ParseWKT(wkt string) (Feature, error) {
 		return Feature{}, err
 	}
 
-	return Feature{Type: t, Coordinates: g, Properties: make(map[string]interface{})}, nil
+	return Feature{Type: t, Coordinates: g, Properties: make(map[string]any)}, nil
 }

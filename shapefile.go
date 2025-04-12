@@ -49,7 +49,7 @@ func parseShpMultiPoint(in []byte) (MultiPoint, error) {
 		return nil, GeoFormatError{Msg: "multipoint is malformed"}
 	}
 
-	for z := 0; z < int(nr); z++ {
+	for z := range int(nr) {
 		s := 36 + z*16
 
 		p, err := parseShpPoint(in[s : s+16])
@@ -86,7 +86,7 @@ func parseShpPolyLine(in []byte) (Polygon, error) {
 	points := make([]Point, int(npoints))
 
 	var v int32
-	for x := 0; x < int(nparts); x++ {
+	for x := range int(nparts) {
 		s := 40 + x*4
 		err = parseValue(in[s:s+4], binary.LittleEndian, &v)
 		if err != nil {
@@ -95,7 +95,7 @@ func parseShpPolyLine(in []byte) (Polygon, error) {
 		parts[x] = v
 	}
 
-	for x := 0; x < int(npoints); x++ {
+	for x := range int(npoints) {
 		s := 40 + 4*int(nparts) + 16*x
 		point, err := parseShpPoint(in[s : s+16])
 		if err != nil {
@@ -105,7 +105,7 @@ func parseShpPolyLine(in []byte) (Polygon, error) {
 	}
 
 	i := len(parts) - 1
-	for x := 0; x < i; x++ {
+	for x := range i {
 		p = append(p, points[parts[x]:parts[x+1]])
 	}
 
@@ -114,7 +114,7 @@ func parseShpPolyLine(in []byte) (Polygon, error) {
 	return p, nil
 }
 
-func parseValue(in []byte, order binary.ByteOrder, out interface{}) error {
+func parseValue(in []byte, order binary.ByteOrder, out any) error {
 	buf := bytes.NewReader(in)
 	return binary.Read(buf, order, out)
 }
@@ -183,7 +183,7 @@ func shpGeographyReader(filename string, result chan shpGeography) {
 			return
 		}
 
-		var c interface{}
+		var c any
 
 		switch t {
 		case 1:
@@ -219,7 +219,7 @@ type dBASEColumn struct {
 	Size     int
 }
 
-func (dbc *dBASEColumn) castValue(inVal string) (outVal interface{}) {
+func (dbc *dBASEColumn) castValue(inVal string) (outVal any) {
 	var err error
 
 	switch dbc.DataType {
@@ -242,7 +242,7 @@ func (dbc *dBASEColumn) castValue(inVal string) (outVal interface{}) {
 
 type dBASETable struct {
 	FileExists bool
-	Properties []map[string]interface{}
+	Properties []map[string]any
 	Error      error
 	Columns    []dBASEColumn
 }
@@ -256,14 +256,14 @@ func (dbr *dBASETable) addColumn(name string, index int, dt byte, size int) {
 	})
 }
 
-func (dbr *dBASETable) addRow(row map[string]interface{}) {
+func (dbr *dBASETable) addRow(row map[string]any) {
 	dbr.Properties = append(dbr.Properties, row)
 }
 
 func dBASEReader(filename string, result chan dBASETable) {
 	ret := dBASETable{
 		Columns:    make([]dBASEColumn, 0),
-		Properties: make([]map[string]interface{}, 0),
+		Properties: make([]map[string]any, 0),
 	}
 
 	returnError := func(err error) {
@@ -320,7 +320,7 @@ func dBASEReader(filename string, result chan dBASETable) {
 	totSize := 0
 
 	var size uint8
-	for x := 0; x < nrOfColumns; x++ {
+	for x := range nrOfColumns {
 		offset := x*32 + 32
 		fieldName := string(c[offset : offset+10])
 
@@ -341,7 +341,7 @@ func dBASEReader(filename string, result chan dBASETable) {
 
 	records := c[int(headerSize)+1:]
 
-	for row := 0; row < int(nrOfRecords); row++ {
+	for row := range int(nrOfRecords) {
 		newRow := make(map[string]interface{})
 		recordStart := row * int(recordLength)
 		recordEnd := recordStart + int(recordLength)
@@ -364,7 +364,7 @@ func dBASEReader(filename string, result chan dBASETable) {
 	return
 }
 
-//ReadShapefile reads a shapefile (and accompanying dBASE-table, if any) into a FeatureCollection
+// ReadShapefile reads a shapefile (and accompanying dBASE-table, if any) into a FeatureCollection
 func ReadShapefile(shapeFile string) (FeatureCollection, error) {
 	if !strings.HasSuffix(shapeFile, ".shp") {
 		return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("%v does not appear to be a shapefile", shapeFile)}

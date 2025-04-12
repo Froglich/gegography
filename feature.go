@@ -36,8 +36,8 @@ type CRS struct {
 // Feature represents a geographical feature
 type Feature struct {
 	Type        string
-	Properties  map[string]interface{}
-	Coordinates interface{}
+	Properties  map[string]any
+	Coordinates any
 }
 
 // FeatureCollection represents a collection of geographical features and accompanying information

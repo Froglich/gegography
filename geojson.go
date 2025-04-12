@@ -10,9 +10,9 @@ type geoJSONGeometry struct {
 }
 
 type geoJSONFeature struct {
-	Type       string                 `json:"type"`
-	Properties map[string]interface{} `json:"properties,omitempty"`
-	Geometry   geoJSONGeometry        `json:"geometry"`
+	Type       string          `json:"type"`
+	Properties map[string]any  `json:"properties,omitempty"`
+	Geometry   geoJSONGeometry `json:"geometry"`
 }
 
 type geoJSON struct {
@@ -65,7 +65,7 @@ func (g gjMultiPolygon) toMultiPolygon() MultiPolygon {
 }
 
 func (f *Feature) toGeoJSONFeature() (geoJSONFeature, error) {
-	var coordinates interface{}
+	var coordinates any
 
 	switch f.Type {
 	case "Point":
@@ -212,7 +212,7 @@ func LoadGeoJSONFeature(input []byte) (Feature, error) {
 		return Feature{}, err
 	}
 
-	var coordinates interface{}
+	var coordinates any
 	var err error
 
 	switch feature.Geometry.Type {
@@ -263,7 +263,7 @@ func LoadGeoJSON(input []byte) (FeatureCollection, error) {
 	fc.Features = make([]Feature, 0)
 	fc.Name = gj.Name
 
-	var coordinates interface{}
+	var coordinates any
 	var err error
 
 	for f := range gj.Features {
