@@ -12,8 +12,8 @@ import (
 const shpMin float64 = -1e38
 
 func parseShpPoint(in []byte) (Point, error) {
-	if len(in) != 16 {
-		return Point{}, GeoFormatError{Msg: "point has wrong number of bytes"}
+	if len(in) < 16 {
+		return Point{}, GeoFormatError{Msg: "point with too few bytes"}
 	}
 
 	var x float64
@@ -186,16 +186,40 @@ func shpGeographyReader(filename string, result chan shpGeography) {
 		var c any
 
 		switch t {
-		case 1:
+		case 1: //Point
 			c, err = parseShpPoint(content[4:])
 			features = append(features, Feature{Type: "Point", Coordinates: c})
-		case 8:
+		case 11: //PointZ
+			c, err = parseShpPoint(content[4:])
+			features = append(features, Feature{Type: "Point", Coordinates: c})
+		case 21: //PointM
+			c, err = parseShpPoint(content[4:])
+			features = append(features, Feature{Type: "Point", Coordinates: c})
+		case 8: //MultiPoint
 			c, err = parseShpMultiPoint(content[4:])
 			features = append(features, Feature{Type: "MultiPoint", Coordinates: c})
-		case 3:
+		case 18: //MultiPointZ
+			c, err = parseShpMultiPoint(content[4:])
+			features = append(features, Feature{Type: "MultiPoint", Coordinates: c})
+		case 28: //MultiPointM
+			c, err = parseShpMultiPoint(content[4:])
+			features = append(features, Feature{Type: "MultiPoint", Coordinates: c})
+		case 3: //PolyLine
 			c, err = parseShpPolyLine(content[4:])
 			features = append(features, Feature{Type: "MultiLineString", Coordinates: c})
-		case 5:
+		case 13: //PolyLineZ
+			c, err = parseShpPolyLine(content[4:])
+			features = append(features, Feature{Type: "MultiLineString", Coordinates: c})
+		case 23: //PolyLineM
+			c, err = parseShpPolyLine(content[4:])
+			features = append(features, Feature{Type: "MultiLineString", Coordinates: c})
+		case 5: //Polygon
+			c, err = parseShpPolyLine(content[4:])
+			features = append(features, Feature{Type: "Polygon", Coordinates: c})
+		case 15: //PolygonZ
+			c, err = parseShpPolyLine(content[4:])
+			features = append(features, Feature{Type: "Polygon", Coordinates: c})
+		case 25: //PolygonM
 			c, err = parseShpPolyLine(content[4:])
 			features = append(features, Feature{Type: "Polygon", Coordinates: c})
 		default:
