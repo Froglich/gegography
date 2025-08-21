@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -124,17 +125,10 @@ type shpGeography struct {
 	Error    error
 }
 
-func shpGeographyReader(filename string, result chan shpGeography) {
-	r, err := os.Open(filename)
-
-	if err != nil {
-		result <- shpGeography{Error: err}
-		return
-	}
-
+func shpGeographyReader(r io.Reader, result chan shpGeography) {
 	header := make([]byte, 100)
 
-	_, err = r.Read(header)
+	_, err := r.Read(header)
 	if err != nil {
 		result <- shpGeography{Error: err}
 		return
@@ -284,10 +278,14 @@ func (dbr *dBASETable) addRow(row map[string]any) {
 	dbr.Properties = append(dbr.Properties, row)
 }
 
-func dBASEReader(filename string, result chan dBASETable) {
+func dBASEReader(r io.Reader, result chan dBASETable) {
 	ret := dBASETable{
 		Columns:    make([]dBASEColumn, 0),
 		Properties: make([]map[string]any, 0),
+	}
+
+	if r == nil {
+		result <- ret //just exitr
 	}
 
 	returnError := func(err error) {
@@ -295,13 +293,9 @@ func dBASEReader(filename string, result chan dBASETable) {
 		result <- ret
 	}
 
-	r, err := os.Open(filename)
-	if err != nil {
-		returnError(err)
-		return
-	}
+	buf := &bytes.Buffer{}
+	_, err := io.Copy(buf, r)
 
-	d, err := r.Stat()
 	if err != nil {
 		returnError(err)
 		return
@@ -309,13 +303,7 @@ func dBASEReader(filename string, result chan dBASETable) {
 
 	ret.FileExists = true //technically, it may exist before this point as well.
 
-	c := make([]byte, d.Size())
-
-	_, err = r.Read(c)
-	if err != nil {
-		returnError(err)
-		return
-	}
+	c := buf.Bytes()
 
 	var nrOfRecords uint32
 	var headerSize uint16
@@ -346,7 +334,8 @@ func dBASEReader(filename string, result chan dBASETable) {
 	var size uint8
 	for x := range nrOfColumns {
 		offset := x*32 + 32
-		fieldName := string(c[offset : offset+10])
+
+		fieldName := strings.Trim(string(c[offset:offset+10]), "\u0000") //Remove whitespace padding
 
 		err := parseValue(c[offset+16:offset+17], binary.LittleEndian, &size)
 		if err != nil {
@@ -389,16 +378,32 @@ func dBASEReader(filename string, result chan dBASETable) {
 
 // ReadShapefile reads a shapefile (and accompanying dBASE-table, if any) into a FeatureCollection
 func ReadShapefile(shapeFile string) (FeatureCollection, error) {
-	if !strings.HasSuffix(shapeFile, ".shp") {
+	if !strings.HasSuffix(strings.ToLower(shapeFile), ".shp") {
 		return FeatureCollection{}, GeoFormatError{Msg: fmt.Sprintf("%v does not appear to be a shapefile", shapeFile)}
 	}
 
 	tabFile := shapeFile[:len(shapeFile)-4] + ".dbf"
+
+	sf, err := os.Open(shapeFile)
+	if err != nil {
+		return FeatureCollection{}, err
+	}
+
+	df, err := os.Open(tabFile)
+	if err != nil && !os.IsNotExist(err) {
+		return FeatureCollection{}, err
+	}
+
+	return ReadShapefileData(sf, df)
+}
+
+// ReadShapefileData reads shapefile (and accompanying dBASE-table, if any) *io.Readers into a FeatureCollection
+func ReadShapefileData(sr io.Reader, dbr io.Reader) (FeatureCollection, error) {
 	tabChan := make(chan dBASETable)
 	geoChan := make(chan shpGeography)
 
-	go shpGeographyReader(shapeFile, geoChan)
-	go dBASEReader(tabFile, tabChan)
+	go shpGeographyReader(sr, geoChan)
+	go dBASEReader(dbr, tabChan)
 	tab := <-tabChan
 	geo := <-geoChan
 
