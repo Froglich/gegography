@@ -366,7 +366,7 @@ func dBASEReader(filename string, result chan dBASETable) {
 	records := c[int(headerSize)+1:]
 
 	for row := range int(nrOfRecords) {
-		newRow := make(map[string]interface{})
+		newRow := make(map[string]any)
 		recordStart := row * int(recordLength)
 		recordEnd := recordStart + int(recordLength)
 		record := records[recordStart:recordEnd]
@@ -385,7 +385,6 @@ func dBASEReader(filename string, result chan dBASETable) {
 	}
 
 	result <- ret
-	return
 }
 
 // ReadShapefile reads a shapefile (and accompanying dBASE-table, if any) into a FeatureCollection
